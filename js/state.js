@@ -129,3 +129,59 @@ function showAlert(page, msg, type) {
   // Kept for backward compat — routes to toast
   showToast(msg, type === 'success' ? 'success' : type === 'info' ? 'info' : 'error');
 }
+
+// ── Active accounts (não arquivadas) ──────────────────────
+
+function activeAccounts() {
+  return state.accounts.filter(a => !a.archived);
+}
+
+// ── Confirm modal (promise-based) ─────────────────────────
+
+let _modalResolve = null;
+
+function showConfirm(title, msg, confirmLabel = 'Confirmar') {
+  return new Promise(resolve => {
+    _modalResolve = resolve;
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-msg').innerHTML = msg;
+    document.getElementById('modal-confirm-btn').textContent = confirmLabel;
+    document.getElementById('modal-overlay').classList.add('show');
+  });
+}
+
+function closeModal(result) {
+  document.getElementById('modal-overlay').classList.remove('show');
+  if (_modalResolve) { _modalResolve(result); _modalResolve = null; }
+}
+
+// ── Button loading state ──────────────────────────────────
+
+function setBtnLoading(btn, loading) {
+  if (!btn) return;
+  if (loading) {
+    btn.dataset.originalHtml = btn.innerHTML;
+    btn.innerHTML = '<span class="btn-spinner"></span> A processar...';
+    btn.classList.add('btn-loading');
+  } else {
+    if (btn.dataset.originalHtml) btn.innerHTML = btn.dataset.originalHtml;
+    btn.classList.remove('btn-loading');
+  }
+}
+
+// ── Session expired handler ───────────────────────────────
+
+function isAuthError(e) {
+  const msg = (e?.message || '').toLowerCase();
+  return msg.includes('jwt') || msg.includes('token') || msg.includes('unauthorized') || e?.status === 401;
+}
+
+function handleDbError(e, fallbackMsg) {
+  console.error(e);
+  if (isAuthError(e)) {
+    showToast('Sessão expirada. Faz login novamente.', 'info');
+    if (typeof showScreen === 'function') showScreen('screen-login');
+  } else {
+    showToast(fallbackMsg + ': ' + e.message, 'error');
+  }
+}

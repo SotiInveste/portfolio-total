@@ -113,6 +113,14 @@ async function dbDeleteAccount(id) {
   if (error) throw error;
 }
 
+async function dbUpdateAccount(id, updates) {
+  const { error } = await sb
+    .from('accounts')
+    .update(updates)
+    .eq('id', id);
+  if (error) throw error;
+}
+
 // ── Monthly Records ───────────────────────────────────────
 
 async function dbGetRecords() {

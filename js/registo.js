@@ -14,30 +14,63 @@ function onMesPicker(value) {
   renderRegisto();
 }
 
+// ── Copiar valores do mês anterior ────────────────────────
+
+function copyPreviousMonth() {
+  const month = mesKey(mesAtual);
+  const prevMonths = allMonths().filter(m => m < month);
+  const prevMonth = prevMonths[prevMonths.length - 1];
+
+  if (!prevMonth) {
+    showToast('Não há nenhum mês anterior registado.', 'info');
+    return;
+  }
+
+  let copied = 0;
+  activeAccounts().forEach(acc => {
+    const el = document.getElementById('inp-' + acc.id);
+    if (!el) return;
+    const prevValue = getValue(acc.id, prevMonth);
+    if (prevValue > 0) {
+      el.value = prevValue;
+      copied++;
+      // Recalcular pill/subtotal
+      const instId = acc.institution.replace(/\W/g, '_');
+      onRegistoInput(acc.id, instId);
+    }
+  });
+
+  const [y, m] = prevMonth.split('-');
+  showToast(`Copiados ${copied} valores de ${MESES[parseInt(m) - 1]} ${y}. Ajusta o que mudou e guarda.`, 'info');
+}
+
+// ── Render ────────────────────────────────────────────────
+
 function renderRegisto() {
   const month = mesKey(mesAtual);
 
-  // Sync picker
   const picker = document.getElementById('mes-picker');
   if (picker) picker.value = month;
 
   const hasRecord = state.records.some(r => r.month === month);
-  document.getElementById('registo-status').textContent = hasRecord ? '✓ Guardado' : 'Sem registo';
+  const statusEl = document.getElementById('registo-status');
+  if (statusEl) statusEl.textContent = hasRecord ? '✓ Guardado' : 'Sem registo';
 
-  if (!state.accounts.length) {
-    document.getElementById('registo-contas').innerHTML =
+  const container = document.getElementById('registo-contas');
+  if (!container) return;
+
+  const accounts = activeAccounts();
+  if (!accounts.length) {
+    container.innerHTML =
       '<div class="empty-state">Começa por adicionar contas no separador <strong>Contas</strong>.</div>';
     return;
-
   }
 
-  // All months before this one (to compute invested base)
-  const prevMonths = [...new Set(state.records.map(r => r.month))].filter(m => m < month).sort();
+  const prevMonths = allMonths().filter(m => m < month);
   const prevMonth  = prevMonths[prevMonths.length - 1];
 
-  // Group accounts by institution
   const byInst = {};
-  state.accounts.forEach(acc => {
+  accounts.forEach(acc => {
     if (!byInst[acc.institution]) byInst[acc.institution] = [];
     byInst[acc.institution].push(acc);
   });
@@ -55,7 +88,6 @@ function renderRegisto() {
         <span class="registo-total" id="sub-${instId}">${fmt(sub)}</span>
       </div>`;
 
-    // Column headers when relevant
     if (hasRentInGroup || hasDivInGroup) {
       html += `<div style="display:grid;grid-template-columns:1fr 120px${hasRentInGroup ? ' 100px' : ''}${hasDivInGroup ? ' 100px' : ''}${hasRentInGroup ? ' auto' : ''};gap:8px;padding-bottom:6px;border-bottom:0.5px solid var(--border-light);margin-bottom:4px">
         <span></span>
@@ -68,14 +100,13 @@ function renderRegisto() {
 
     accs.forEach(acc => {
       const rec     = getRecord(acc.id, month);
-      const val     = rec ? rec.value    || '' : '';
-      const topup   = rec ? rec.top_up   || '' : '';
+      const val     = rec ? rec.value || '' : '';
+      const topup   = rec ? rec.top_up || '' : '';
       const divs    = rec ? rec.dividends || '' : '';
       const hasRent = trackRent(acc.type_id);
       const hasDiv  = trackDiv(acc.type_id);
       const t       = getType(acc.type_id);
 
-      // Compute current rent pill
       let invBase = parseFloat(acc.initial_inv || 0);
       if (prevMonth) {
         state.records
@@ -118,7 +149,7 @@ function renderRegisto() {
     html += '</div>';
   });
 
-  document.getElementById('registo-contas').innerHTML = html;
+  container.innerHTML = html;
 }
 
 function onRegistoInput(accountId, instId) {
@@ -126,11 +157,10 @@ function onRegistoInput(accountId, instId) {
   if (!acc) return;
   const month = mesKey(mesAtual);
 
-  // Update rent pill in real time
   if (trackRent(acc.type_id)) {
     const v      = parseFloat(document.getElementById('inp-' + accountId)?.value || 0);
     const topup  = parseFloat(document.getElementById('topup-' + accountId)?.value || 0);
-    const prevMonths = [...new Set(state.records.map(r => r.month))].filter(m => m < month).sort();
+    const prevMonths = allMonths().filter(m => m < month);
     const prevMonth  = prevMonths[prevMonths.length - 1];
 
     let invBase = parseFloat(acc.initial_inv || 0);
@@ -153,18 +183,20 @@ function onRegistoInput(accountId, instId) {
     }
   }
 
-  // Update institution subtotal
-  const instAccs = state.accounts.filter(a => a.institution.replace(/\W/g, '_') === instId);
+  const instAccs = activeAccounts().filter(a => a.institution.replace(/\W/g, '_') === instId);
   const sub = instAccs.reduce((s, a) => s + parseFloat(document.getElementById('inp-' + a.id)?.value || 0), 0);
   const subEl = document.getElementById('sub-' + instId);
   if (subEl) subEl.textContent = fmt(sub);
 }
 
+// ── Save (updates local state, no full refetch) ───────────
+
 async function saveMonthlyRecord() {
   const month = mesKey(mesAtual);
+  const btn = document.querySelector('.save-btn-wrap .btn-primary');
   const records = [];
 
-  state.accounts.forEach(acc => {
+  activeAccounts().forEach(acc => {
     const vEl = document.getElementById('inp-' + acc.id);
     if (!vEl) return;
     records.push({
@@ -176,14 +208,25 @@ async function saveMonthlyRecord() {
     });
   });
 
+  setBtnLoading(btn, true);
   try {
     await dbUpsertRecords(records);
-    // Refresh local state
-    const fresh = await dbGetRecords();
-    state.records = fresh;
+
+    // Update local state directly — no refetch
+    records.forEach(rec => {
+      const idx = state.records.findIndex(r => r.account_id === rec.account_id && r.month === rec.month);
+      if (idx >= 0) {
+        state.records[idx] = { ...state.records[idx], ...rec };
+      } else {
+        state.records.push(rec);
+      }
+    });
+
     document.getElementById('registo-status').textContent = '✓ Guardado';
     showToast('Registo guardado com sucesso');
   } catch (e) {
-    showToast('Erro ao guardar: ' + e.message, 'error');
+    handleDbError(e, 'Erro ao guardar');
+  } finally {
+    setBtnLoading(btn, false);
   }
 }

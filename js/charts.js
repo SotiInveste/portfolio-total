@@ -22,7 +22,7 @@ function renderDonut(canvasId, labels, values, colors) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { display: canvasId === 'chart-banco', position: 'right', labels: { font: { size: 11 }, boxWidth: 10 } },
+        legend: { display: false },
         tooltip: { callbacks: { label: ctx => ' ' + fmt(ctx.raw) } }
       }
     }

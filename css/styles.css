@@ -390,3 +390,123 @@ th, td { padding: 7px 4px; }
 body.booting #screen-login,
 body.booting #screen-app  { display: none !important; }
 body.booting #screen-loading { display: block !important; }
+
+/* ══════════════ v3 additions ══════════════ */
+
+/* ── Toast dark mode ── */
+@media (prefers-color-scheme: dark) {
+  #toast.toast-success { background: #14532d; color: #bbf7d0; }
+  #toast.toast-error   { background: #7f1d1d; color: #fecaca; }
+  #toast.toast-info    { background: #1e3a5f; color: #bfdbfe; }
+}
+
+/* ── Button loading state ── */
+.btn-loading { opacity: .6; pointer-events: none; }
+.btn-spinner {
+  width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,.3);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+  display: inline-block;
+}
+
+/* ── Confirm modal ── */
+#modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.45);
+  display: none;
+  align-items: center; justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+#modal-overlay.show { display: flex; }
+.modal-box {
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 10px 40px rgba(0,0,0,.25);
+}
+.modal-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+.modal-msg   { font-size: 14px; color: var(--text-secondary); margin-bottom: 1.25rem; line-height: 1.5; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.btn-danger {
+  background: #c0392b; color: #fff;
+  border: none; padding: 8px 20px;
+  border-radius: var(--radius-md);
+  font-size: 14px; cursor: pointer;
+  font-family: var(--font);
+}
+
+/* ── History table scroll (mobile) ── */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table-scroll table { min-width: 560px; }
+
+/* ── Evolution period filter ── */
+.period-filter { display: flex; gap: 4px; margin-bottom: 8px; }
+.period-btn {
+  background: none;
+  border: 0.5px solid var(--border-medium);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-family: var(--font);
+}
+.period-btn.active {
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  border-color: var(--text-primary);
+}
+
+/* ── Custom donut legends with % ── */
+.donut-legend { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; font-size: 12px; }
+.donut-legend-item { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); }
+.donut-legend-item .pct { margin-left: auto; font-weight: 500; color: var(--text-primary); }
+
+/* ── Onboarding empty state ── */
+.onboarding {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 2rem 1.5rem;
+  text-align: center;
+}
+.onboarding h2 { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+.onboarding p  { font-size: 14px; color: var(--text-secondary); margin-bottom: 1.25rem; }
+.onboarding-steps { display: flex; flex-direction: column; gap: 10px; max-width: 320px; margin: 0 auto; text-align: left; }
+.onboarding-step {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  font-size: 14px;
+}
+.onboarding-step .num {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* ── Archived accounts ── */
+.account-row.archived { opacity: .5; }
+.archived-title { margin-top: 1.5rem; }
+
+/* ── Reorder arrows ── */
+.reorder-btns { display: flex; flex-direction: column; gap: 0; }
+.reorder-btns button {
+  background: none; border: none;
+  cursor: pointer; color: var(--text-secondary);
+  padding: 0 4px; font-size: 12px; line-height: 1.1;
+}
+.reorder-btns button:hover { color: var(--text-primary); }
+.reorder-btns button:disabled { opacity: .25; cursor: default; }
+
+/* ── Copiar mês anterior button ── */
+.copy-prev-wrap { margin-bottom: 12px; display: flex; justify-content: flex-end; }
